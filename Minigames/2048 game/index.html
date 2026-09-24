@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>2048 - slothdev</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a href="../../index.html" class="back-link">&larr; back</a>
+    <div class="game-container">
+        <h1>2048</h1>
+        <div class="score-board">
+            <div class="score-item">
+                <span class="score-label">score</span>
+                <span class="score-value" id="score">0</span>
+            </div>
+            <div class="score-divider"></div>
+            <div class="score-item">
+                <span class="score-label">best</span>
+                <span class="score-value" id="highScore">0</span>
+            </div>
+        </div>
+        <div class="board" id="board"></div>
+        <div id="gameOver" class="hidden">
+            <h2>game over</h2>
+            <button id="restartBtn">try again</button>
+        </div>
+        <div id="winOverlay" class="hidden">
+            <h2>you win!</h2>
+            <button id="keepBtn">keep going</button>
+            <button id="restartBtn2">new game</button>
+        </div>
+        <div class="controls">
+            <button id="newGameBtn">new game</button>
+        </div>
+        <p class="instructions">arrow keys to slide tiles</p>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

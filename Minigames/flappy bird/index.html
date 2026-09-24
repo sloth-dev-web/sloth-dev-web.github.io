@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>flappy bird - slothdev</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a href="../../index.html" class="back-link">&larr; back</a>
+    <div class="game-container">
+        <h1>flappy bird</h1>
+        <div class="score-board">
+            <div class="score-item">
+                <span class="score-label">score</span>
+                <span class="score-value" id="score">0</span>
+            </div>
+            <div class="score-divider"></div>
+            <div class="score-item">
+                <span class="score-label">best</span>
+                <span class="score-value" id="highScore">0</span>
+            </div>
+        </div>
+        <div class="canvas-wrap">
+            <canvas id="gameCanvas" width="400" height="500"></canvas>
+            <div id="startOverlay">
+                <p>press space or tap to play</p>
+            </div>
+            <div id="gameOver" class="hidden">
+                <h2>game over</h2>
+                <p>score: <span id="finalScore">0</span></p>
+                <button id="restartBtn">try again</button>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

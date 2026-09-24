@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>coin flip - slothdev</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a href="../../index.html" class="back-link">&larr; back</a>
+    <div class="game-container">
+        <h1>coin flip</h1>
+        <div class="stats-bar">
+            <div class="stat">
+                <span class="stat-label">wins</span>
+                <span class="stat-value" id="wins">0</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+                <span class="stat-label">losses</span>
+                <span class="stat-value" id="losses">0</span>
+            </div>
+            <div class="stat-divider"></div>
+            <div class="stat">
+                <span class="stat-label">streak</span>
+                <span class="stat-value" id="streak">0</span>
+            </div>
+        </div>
+        <div class="coin-area">
+            <div class="coin" id="coin">
+                <img src="head.png" alt="" id="coinImg">
+            </div>
+        </div>
+        <p class="result" id="result"></p>
+        <div class="choices">
+            <button id="headBtn" class="choice-btn">heads</button>
+            <button id="tailBtn" class="choice-btn">tails</button>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>

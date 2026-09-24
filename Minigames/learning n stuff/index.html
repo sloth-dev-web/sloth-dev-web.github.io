@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>learn python - slothdev</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/pyodide/v0.24.1/full/pyodide.js"></script>
+</head>
+<body>
+    <a href="index.html" class="back-link">&larr; back</a>
+    <div class="app">
+        <nav class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <h1>learn python</h1>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                <span class="progress-text" id="progressText">0 / 0 complete</span>
+            </div>
+            <div class="chapter-list" id="chapterList"></div>
+        </nav>
+        <main class="content" id="content">
+            <div class="welcome" id="welcome">
+                <h2>welcome</h2>
+                <p>pick a lesson from the sidebar to start learning python.</p>
+                <p class="sub">each lesson has an explanation, code examples, a quiz, and a coding challenge.</p>
+            </div>
+        </main>
+    </div>
+    <script src="data.js"></script>
+    <script src="engine.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>

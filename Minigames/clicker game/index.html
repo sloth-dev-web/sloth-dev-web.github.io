@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>clicking game - slothdev</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a href="../../index.html" class="back-link">&larr; back</a>
+    <div class="game-container">
+        <h1>clicking game</h1>
+        <div class="main-layout">
+            <div class="left-panel">
+                <div class="count-display">
+                    <span class="count" id="count">0</span>
+                    <span class="count-label">clicks</span>
+                </div>
+                <div class="click-area">
+                    <button id="clickBtn" class="click-btn">
+                        <span class="click-ring"></span>
+                        <span class="click-inner">click</span>
+                    </button>
+                    <div id="floaters"></div>
+                </div>
+                <div class="stats-bar">
+                    <div class="stat">
+                        <span class="stat-label">per click</span>
+                        <span class="stat-value" id="perClick">1</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat">
+                        <span class="stat-label">per second</span>
+                        <span class="stat-value" id="perSecond">0</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat">
+                        <span class="stat-label">total</span>
+                        <span class="stat-value" id="totalClicks">0</span>
+                    </div>
+                </div>
+            </div>
+            <div class="right-panel">
+                <h2>upgrades</h2>
+                <div class="upgrade-grid" id="upgradeGrid"></div>
+            </div>
+        </div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
