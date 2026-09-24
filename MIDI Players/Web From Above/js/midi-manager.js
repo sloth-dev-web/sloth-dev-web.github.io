@@ -13,8 +13,9 @@ class MIDIManager {
         this.inputs = [];
         this.isSupported = navigator.requestMIDIAccess !== undefined;
         this.liveSustainOn = new Array(16).fill(false);
-        this.livePedalHeldNotes = new Set();
-        this.livePedalGraceUntil = 0;
+        // Per-channel: notes held only by that channel's live sustain pedal.
+        this.livePedalHeldNotes = Array.from({ length: 16 }, () => new Set());
+        this.livePedalGraceUntil = new Array(16).fill(0);
         this.init();
     }
     async init() {
@@ -60,8 +61,8 @@ class MIDIManager {
         this.selectedInput = this.inputs[indexOrId];
         settings.set('selectedMidiDevice', indexOrId);
         this.liveSustainOn.fill(false);
-        this.livePedalHeldNotes.clear();
-        this.livePedalGraceUntil = 0;
+        for (let c = 0; c < 16; c++) this.livePedalHeldNotes[c].clear();
+        this.livePedalGraceUntil.fill(0);
         if(this.selectedInput) { this.selectedInput.onmidimessage = (msg) => this.handleMessage(msg); }
         updateMIDIDeviceList();
     }
@@ -73,11 +74,14 @@ class MIDIManager {
         const note = data[1];
         const velocity = data[2] || 0;
 
-        // Thru to MIDI out, preserving channel.
+        // Thru to MIDI out with the raw note/channel (device map ≠ UI keys).
+        // triggerKey/releaseKey are told to skip MIDI out so each note is
+        // sent exactly once — a second copy stacks voices (release echo).
         try {
-            if (status === 0x90 || status === 0x80) {
-                if (status === 0x90 && velocity > 0) midiOutNoteOn(ch, note, velocity);
-                else midiOutNoteOff(ch, note);
+            if (status === 0x90 && velocity > 0) {
+                midiOutNoteOn(ch, note, velocity);
+            } else if (status === 0x80 || (status === 0x90 && velocity === 0)) {
+                midiOutNoteOff(ch, note);
             } else if (status === 0xB0) {
                 midiOutControl(ch, data[1], data[2] || 0);
             }
@@ -92,14 +96,16 @@ class MIDIManager {
                 this.liveSustainOn[ch] = on;
 
                 if (wasOn && !on) {
-                    const heldCopy = Array.from(this.livePedalHeldNotes);
-                    this.livePedalHeldNotes.clear();
-                    this.livePedalGraceUntil = performance.now() + 30;
+                    // Only this channel's pedal-held notes. Still-key-held
+                    // re-strikes are not in the set and must keep sounding.
+                    const heldCopy = Array.from(this.livePedalHeldNotes[ch]);
+                    this.livePedalHeldNotes[ch].clear();
+                    this.livePedalGraceUntil[ch] = performance.now() + 30;
                     const releaseFn = () => {
                         for (const midiNote of heldCopy) {
                             const k = midiToKey(midiNote);
                             if (k >= 0 && k < 128) {
-                                if (typeof releaseKey === 'function') releaseKey(k);
+                                if (typeof releaseKey === 'function') releaseKey(k, ch, true);
                                 releaseFreeNote(k);
                             }
                         }
@@ -117,7 +123,9 @@ class MIDIManager {
         if (noteOn) {
             const k = midiToKey(note);
             if (k >= 0 && k < 128) {
-                triggerKey(k, velocity, NoteColors[ch % NoteColors.length]);
+                // Re-struck: key is down again — not pedal-held on any channel.
+                for (let c = 0; c < 16; c++) this.livePedalHeldNotes[c].delete(note);
+                triggerKey(k, velocity, NoteColors[ch % NoteColors.length], ch, true);
                 const now = (midiPlayer && midiPlayer.currentTime) || 0;
                 spawnLiveNote(k, velocity, now, now, 150, ch,
                     { visualOnly: true, freeplay: true, layerType: 'freeplay', opacity: 0.9 }, midiPlayer);
@@ -128,12 +136,12 @@ class MIDIManager {
                 const k = midiToKey(note);
                 if (k >= 0 && k < 128) {
                     const now = performance.now();
-                    if (this.liveSustainOn[ch] || now < this.livePedalGraceUntil) {
-                        this.livePedalHeldNotes.add(note);
+                    if (this.liveSustainOn[ch] || now < this.livePedalGraceUntil[ch]) {
+                        this.livePedalHeldNotes[ch].add(note);
                     } else {
-                        if (typeof releaseKey === 'function') releaseKey(k);
+                        if (typeof releaseKey === 'function') releaseKey(k, ch, true);
                         releaseFreeNote(k);
-                        this.livePedalHeldNotes.delete(note);
+                        this.livePedalHeldNotes[ch].delete(note);
                     }
                 }
             }

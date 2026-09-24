@@ -52,7 +52,7 @@ function retireFutureSongNotes(cutTime) {
         if (n.eventTime != null && n.eventTime > cutTime) {
             if (n.keyPressed) {
                 keyHoldCounts[n.k] = Math.max(0, (keyHoldCounts[n.k] || 0) - 1);
-                if (keyHoldCounts[n.k] === 0) releaseKey(n.k);
+                if (keyHoldCounts[n.k] === 0) releaseKey(n.k, n.channel || 0);
                 n.keyPressed = false;
             }
             n.active = false;
@@ -195,7 +195,7 @@ function updateLiveNotes(midiPlayer = null, now = performance.now(), mouse = nul
                             if (midiPlayer && midiPlayer.isPlaying) {
                                 pressKeyVisual(n.k, noteColor);
                             } else {
-                                triggerKey(n.k, n.velocity, noteColor);
+                                triggerKey(n.k, n.velocity, noteColor, n.channel || 0);
                             }
                         }
                     }
@@ -206,7 +206,7 @@ function updateLiveNotes(midiPlayer = null, now = performance.now(), mouse = nul
                             if (midiPlayer && midiPlayer.isPlaying) {
                                 releaseKeyVisual(n.k);
                             } else {
-                                releaseKey(n.k);
+                                releaseKey(n.k, n.channel || 0);
                             }
                         }
                     }
@@ -216,7 +216,7 @@ function updateLiveNotes(midiPlayer = null, now = performance.now(), mouse = nul
                         if (midiPlayer && midiPlayer.isPlaying) {
                             pressKeyVisual(n.k, n.color);
                         } else {
-                            triggerKey(n.k, n.velocity, n.color);
+                            triggerKey(n.k, n.velocity, n.color, n.channel || 0);
                         }
                     }
                 }
@@ -231,7 +231,7 @@ function updateLiveNotes(midiPlayer = null, now = performance.now(), mouse = nul
                         if (midiPlayer && midiPlayer.isPlaying) {
                             releaseKeyVisual(n.k);
                         } else {
-                            releaseKey(n.k);
+                            releaseKey(n.k, n.channel || 0);
                         }
                     }
                     n.keyPressed = false;

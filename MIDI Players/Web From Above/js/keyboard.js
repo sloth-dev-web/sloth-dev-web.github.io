@@ -1,16 +1,26 @@
 import { keyToMidi, midiToKey, isSharp, SharpRatio, KeyMap, NoteColors, trackColorIdx, getNoteX, computeKeyboardLayout } from './piano-constants.js';
 import { WinW, WinH, KeyX, KeyWidth, KeyPress, KeyColor, m_iStartNote, m_iEndNote, m_fWhiteCX, m_fNotesX } from './webgl.js';
 import { playKey, stopKey, resumeAudioSilently } from './audio-engine.js';
-import { midiOutNoteOn, midiOutNoteOff } from './midi-out.js';
+import { midiOutNoteOn, midiOutNoteOff, midiOutIsActive } from './midi-out.js';
+import { settings } from './settings.js';
 
-function triggerKey(k, velocity=127, color = null){
+// Same rule as song playback: with a MIDI output selected (and the default
+// mute-internal toggle on), free-play must not also fire the SoundFont —
+// dual output sounds like a delayed echo and leaks stacked voices after a
+// bad custom SF session.
+function internalSynthAudible() {
+    return !settings.get('muteInternalSynth') || !midiOutIsActive();
+}
+
+function triggerKey(k, velocity=127, color = null, midiCh = 0, skipMidiOut = false){
     if(k < 0 || k >= 256) return;
     const j = KeyMap[k];
     KeyPress[j] = true;
     KeyColor[j] = (color != null ? color : NoteColors[trackColorIdx.value % NoteColors.length]);
     if (typeof resumeAudioSilently === 'function') resumeAudioSilently();
-    playKey(k, velocity);
-    midiOutNoteOn(0, keyToMidi(k), velocity);
+    if (internalSynthAudible()) playKey(k, velocity);
+    // skipMidiOut: live MIDI input already forwarded the raw note bytes.
+    if (!skipMidiOut) midiOutNoteOn(midiCh & 0x0F, keyToMidi(k), velocity);
 }
 
 function pressKeyVisual(k, color = null) {
@@ -27,13 +37,15 @@ function releaseKeyVisual(k){
     KeyColor[j] = 0xFFFFFFFF;
 }
 
-function releaseKey(k){
+function releaseKey(k, midiCh = 0, skipMidiOut = false){
     if(k < 0 || k >= 256) return;
     const j = KeyMap[k];
     KeyPress[j] = false;
     KeyColor[j] = 0xFFFFFFFF;
+    // Always drain internal voices (even when muted for MIDI out) so a
+    // crashed/custom SF can't leave ringing leftovers under the device.
     stopKey(k);
-    midiOutNoteOff(0, keyToMidi(k));
+    if (!skipMidiOut) midiOutNoteOff(midiCh & 0x0F, keyToMidi(k));
 }
 
 function hitKey(cx, cy){

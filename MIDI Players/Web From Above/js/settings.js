@@ -32,7 +32,7 @@ const SCHEMA = [
         settings: [
             { key: 'masterVolume', type: 'range', label: 'master volume', hint: '', i18n: 'masterVolume', min: 0, max: 100, step: 1, def: 100, format: (v) => v + '%', onChange: () => { import('./audio-engine.js').then((m) => m.updateAudioGain && m.updateAudioGain()).catch(() => {}); } },
             { key: 'audioLimiter', type: 'toggle', label: 'audio limiter', hint: 'prevents distortion on dense black midi.', i18n: 'audioLimiter', i18nHint: 'audioLimiterDesc', def: true, onChange: () => { import('./audio-engine.js').then((m) => m.applyAudioLimiterSettings && m.applyAudioLimiterSettings()).catch(() => {}); } },
-            { key: 'muteInternalSynth', type: 'toggle', label: 'mute internal synth with midi out', hint: 'silence the built-in soundfont while a midi output is selected (biggest dense-song speedup).', def: true },
+            { key: 'muteInternalSynth', type: 'toggle', label: 'mute internal synth with midi out', hint: 'silence the built-in soundfont while a midi output is selected (biggest dense-song speedup).', def: true, onChange: (v) => { if (v) { import('./midi-out.js').then((mo) => { if (mo.midiOutIsActive && mo.midiOutIsActive()) { import('./audio-engine.js').then((m) => m.stopAllVoices && m.stopAllVoices(true)).catch(() => {}); } }).catch(() => {}); } } },
         ]
     },
     {

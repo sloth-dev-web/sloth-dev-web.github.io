@@ -104,7 +104,8 @@ class MIDIPlayer {
         this.duration       = 0;
         this.activeNotes    = new Map(); // midiK -> { v, c } for resume re-fire
         this.sustainOn      = new Array(16).fill(false);
-        this.pedalHeldNotes = new Set();
+        // Per-channel: notes held only by that channel's sustain pedal.
+        this.pedalHeldNotes = Array.from({ length: 16 }, () => new Set());
         this.isParsedWithWasm = false;
         this.allEvents      = null;
         this.division       = 480;
@@ -124,8 +125,17 @@ class MIDIPlayer {
         this._midiResumeNotes = null;
         this.activeNotes.clear();
         this.sustainOn.fill(false);
-        this.pedalHeldNotes.clear();
+        this._clearAllPedalHeld();
         if (typeof stopAllVoices === 'function') stopAllVoices(true);
+    }
+
+    _clearAllPedalHeld() {
+        for (let c = 0; c < 16; c++) this.pedalHeldNotes[c].clear();
+    }
+
+    // A re-struck note is key-held again on every channel that shares the key.
+    _removePedalHeldEverywhere(midiK) {
+        for (let c = 0; c < 16; c++) this.pedalHeldNotes[c].delete(midiK);
     }
 
     // First event index with time > timeMs (absMs is non-decreasing).
@@ -146,7 +156,7 @@ class MIDIPlayer {
     _rebuildStateAt(timeMs) {
         this.activeNotes.clear();
         this.sustainOn.fill(false);
-        this.pedalHeldNotes.clear();
+        this._clearAllPedalHeld();
         if (!this.allEvents) return;
         for (let i = 0; i < this.allEvents.length; i++) {
             const ev = this.allEvents[i];
@@ -155,18 +165,22 @@ class MIDIPlayer {
             if (ev.visualOnly) continue;
             if (ev.type === 'noteOn' && ev.velocity > 0) {
                 this.activeNotes.set(ev.note, { v: ev.velocity, c: ev.channel || 0 });
+                this._removePedalHeldEverywhere(ev.note);
             } else if (ev.type === 'noteOff' || (ev.type === 'noteOn' && (ev.velocity || 0) === 0)) {
                 const ch = ev.channel || 0;
-                if (this.sustainOn[ch]) this.pedalHeldNotes.add(ev.note);
-                else this.activeNotes.delete(ev.note);
+                if (this.sustainOn[ch]) this.pedalHeldNotes[ch].add(ev.note);
+                else {
+                    this.activeNotes.delete(ev.note);
+                    this._removePedalHeldEverywhere(ev.note);
+                }
             } else if ((ev.type === 'control' || ev.type === 'controlChange') && ev.controller === 64) {
                 const ch = ev.channel || 0;
                 const on = (ev.value || 0) >= 64;
                 const wasOn = this.sustainOn[ch];
                 this.sustainOn[ch] = on;
                 if (wasOn && !on) {
-                    for (const m of this.pedalHeldNotes) this.activeNotes.delete(m);
-                    this.pedalHeldNotes.clear();
+                    for (const m of this.pedalHeldNotes[ch]) this.activeNotes.delete(m);
+                    this.pedalHeldNotes[ch].clear();
                 }
             }
         }
@@ -178,7 +192,10 @@ class MIDIPlayer {
         const held = new Map();
         if (!this.allEvents) return held;
         const sustainOn = new Array(16).fill(false);
-        const pedalHeld = new Set();
+        const pedalHeld = Array.from({ length: 16 }, () => new Set());
+        const clearPedalEverywhere = (m) => {
+            for (let c = 0; c < 16; c++) pedalHeld[c].delete(m);
+        };
         for (let i = 0; i < this.allEvents.length; i++) {
             const ev = this.allEvents[i];
             const ems = ev.absMs != null ? ev.absMs : this.getTimeForTick(ev.time);
@@ -186,18 +203,22 @@ class MIDIPlayer {
             if (ev.visualOnly) continue;
             if (ev.type === 'noteOn' && ev.velocity > 0) {
                 held.set(ev.note, { v: ev.velocity, c: ev.channel || 0 });
+                clearPedalEverywhere(ev.note);
             } else if (ev.type === 'noteOff' || (ev.type === 'noteOn' && (ev.velocity || 0) === 0)) {
                 const ch = ev.channel || 0;
-                if (sustainOn[ch]) pedalHeld.add(ev.note);
-                else held.delete(ev.note);
+                if (sustainOn[ch]) pedalHeld[ch].add(ev.note);
+                else {
+                    held.delete(ev.note);
+                    clearPedalEverywhere(ev.note);
+                }
             } else if ((ev.type === 'control' || ev.type === 'controlChange') && ev.controller === 64) {
                 const ch = ev.channel || 0;
                 const on = (ev.value || 0) >= 64;
                 const wasOn = sustainOn[ch];
                 sustainOn[ch] = on;
                 if (wasOn && !on) {
-                    for (const m of pedalHeld) held.delete(m);
-                    pedalHeld.clear();
+                    for (const m of pedalHeld[ch]) held.delete(m);
+                    pedalHeld[ch].clear();
                 }
             }
         }
@@ -248,7 +269,7 @@ class MIDIPlayer {
             this.midiOutIndex = 0;
             this.activeNotes.clear();
             this.sustainOn.fill(false);
-            this.pedalHeldNotes.clear();
+            this._clearAllPedalHeld();
             this._midiResumeNotes = null;
             this._frozenPause = false;
             // Fresh start: drop any song notes left frozen from a prior stop.
@@ -320,7 +341,7 @@ class MIDIPlayer {
         this.startTimestamp = 0;
         this.activeNotes.clear();
         this.sustainOn.fill(false);
-        this.pedalHeldNotes.clear();
+        this._clearAllPedalHeld();
         this._midiResumeNotes = null;
         this._frozenPause = false;
         // Kill while still frozen so look-ahead sources can't blip on resume;
@@ -446,7 +467,11 @@ class MIDIPlayer {
                 const k = midiToKey(midiK);
                 if (k >= 0 && k < 256) {
                     const isVisualLayer = !!(ev && ev.visualOnly);
-                    if (!isVisualLayer) this.activeNotes.set(midiK, { v: vel, c: ev.channel || 0 });
+                    if (!isVisualLayer) {
+                        this.activeNotes.set(midiK, { v: vel, c: ev.channel || 0 });
+                        // Re-struck: key is down again — not pedal-held anywhere.
+                        this._removePedalHeldEverywhere(midiK);
+                    }
 
                     if (synthAudible && typeof playSoundFontNote === 'function' && audioContext) {
                         const when = audioContext.currentTime + Math.max(0, (evMs - songTime) / 1000);
@@ -458,9 +483,10 @@ class MIDIPlayer {
                 const ch = ev.channel || 0;
                 const k = midiToKey(midiK);
                 if (this.sustainOn[ch]) {
-                    this.pedalHeldNotes.add(midiK);
+                    this.pedalHeldNotes[ch].add(midiK);
                 } else if (this.activeNotes.has(midiK) && k >= 0) {
                     this.activeNotes.delete(midiK);
+                    this._removePedalHeldEverywhere(midiK);
                     if (synthAudible && typeof stopSoundFontNote === 'function' && audioContext) {
                         const when = audioContext.currentTime + Math.max(0.001, (evMs - songTime) / 1000);
                         stopSoundFontNote(k, false, when);
@@ -474,21 +500,25 @@ class MIDIPlayer {
                 const wasOn = this.sustainOn[ch];
                 this.sustainOn[ch] = on;
                 if (wasOn && !on) {
-                    for (const m of Array.from(this.pedalHeldNotes)) {
+                    // Only this channel's pedal-held notes. Still-key-held
+                    // re-strikes are not in the set and must keep sounding.
+                    const when = (synthAudible && audioContext)
+                        ? audioContext.currentTime + Math.max(0.001, (evMs - songTime) / 1000)
+                        : null;
+                    for (const m of Array.from(this.pedalHeldNotes[ch])) {
                         const kk = midiToKey(m);
                         if (kk >= 0) {
-                            if (synthAudible && typeof stopSoundFontNote === 'function') {
+                            if (synthAudible && typeof stopSoundFontNote === 'function' && audioContext) {
                                 const arr = sf2Voices.get(kk);
-                                while (arr && arr.length > 0) {
-                                    stopSoundFontNote(kk, false);
-                                }
+                                const n = arr ? arr.length : 0;
+                                for (let vi = 0; vi < n; vi++) stopSoundFontNote(kk, false, when);
                             } else if (typeof stopKey === 'function') {
                                 stopKey(kk);
                             }
                         }
+                        this.activeNotes.delete(m);
                     }
-                    for (const m of Array.from(this.pedalHeldNotes)) this.activeNotes.delete(m);
-                    this.pedalHeldNotes.clear();
+                    this.pedalHeldNotes[ch].clear();
                 }
             }
             this.eventIndex++;
@@ -580,7 +610,7 @@ MIDIPlayer.prototype.loadFile = async function(file) {
         this.midiOutIndex = 0;
         this.activeNotes.clear();
         this.sustainOn.fill(false);
-        this.pedalHeldNotes.clear();
+        this._clearAllPedalHeld();
 
         const parsed = parseMIDI(arrayBuffer);
         this.division = parsed.timeDivision;

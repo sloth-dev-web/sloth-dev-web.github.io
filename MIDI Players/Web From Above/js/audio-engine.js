@@ -343,12 +343,22 @@ function playKey(k, velocity = 127) {
     if (!sf2Voices) return;
     if (audioFrozen) return;
     if (!audioContext) return;
+    // Free-play is one voice per key: drain everything first. cutPrevious
+    // only pops one entry, so song look-ahead (cutPrevious=false) plus spam
+    // could stack forever and blow up the context.
+    const arr = sf2Voices.get(k);
+    const n = arr ? arr.length : 0;
+    for (let i = 0; i < n; i++) stopSoundFontNote(k, true);
     playSoundFontNote(k, velocity);
 }
 
 function stopKey(k) {
     if (!sf2Voices) return;
-    stopSoundFontNote(k);
+    // Release every stacked voice on the key (matched noteOffs + any orphan
+    // left by a prior SF crash / dense look-ahead).
+    const arr = sf2Voices.get(k);
+    const n = arr ? arr.length : 0;
+    for (let i = 0; i < n; i++) stopSoundFontNote(k);
 }
 
 function stopAllVoices(immediate = false) {

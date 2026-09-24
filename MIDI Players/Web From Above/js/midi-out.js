@@ -7,6 +7,13 @@ let midiAccess = null;
 let outputs = [];
 let selectedOutput = null;
 
+// Late-bound to avoid an import cycle with audio-engine.
+function stopInternalVoices() {
+    import('./audio-engine.js')
+        .then((m) => { if (typeof m.stopAllVoices === 'function') m.stopAllVoices(true); })
+        .catch(() => {});
+}
+
 function attach(access) {
     midiAccess = access;
     scanOutputs();
@@ -28,7 +35,11 @@ function scanOutputs() {
         const savedIdx = outputs.findIndex((o) => o.id === prevId);
         if (savedIdx >= 0) {
             sel.value = savedIdx;
-            selectOutput(savedIdx);
+            // Same device already active: don't allNotesOff / kill voices
+            // just because the list was rescanned.
+            if (!selectedOutput || selectedOutput.id !== outputs[savedIdx].id) {
+                selectOutput(savedIdx);
+            }
         } else {
             selectedOutput = null;
         }
@@ -39,9 +50,25 @@ function scanOutputs() {
 
 function selectOutput(idx) {
     const out = outputs[idx];
-    if (!out) { selectedOutput = null; renderOutputList(); updateSoundFontState(); return; }
+    const prev = selectedOutput;
+    if (!out) {
+        // allNotesOff needs selectedOutput still set.
+        if (prev) allNotesOff();
+        selectedOutput = null;
+        // Clear any leftover/crashed internal voices so free-play starts clean.
+        if (prev) stopInternalVoices();
+        renderOutputList();
+        updateSoundFontState();
+        return;
+    }
+    // Silence the previous device before swapping.
+    if (prev && prev.id !== out.id) allNotesOff();
     selectedOutput = out;
     try { settings.set('selectedMidiOutput', out.id); } catch (e) {}
+    // Entering MIDI-out mode: silence the built-in synth so a crashed/custom
+    // SF can't keep stacking voices under free-play (double = echo).
+    allNotesOff();
+    if (settings.get('muteInternalSynth')) stopInternalVoices();
     renderOutputList();
     updateSoundFontState();
 }
