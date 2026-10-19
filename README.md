@@ -37,4 +37,4 @@ npx serve .
 
 ## license
 
-no license "yet", so pls don't do anything stupid >:C
+licensed under The DON'T BE A DICK Public License
