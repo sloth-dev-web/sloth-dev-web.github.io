@@ -1,7 +1,7 @@
 # WEB FROM ABOVE
 Hello PFA Users and welcome to Web From Above for Websites!
 
-Credits to [Brian Pantano](https://github.com/brian-pantano) because he made Piano From Abovw
+Credits to [Brian Pantano](https://github.com/brian-pantano) because he made Piano From Above
 
 
 In this Website, you can do more then the original has:
@@ -15,6 +15,7 @@ In this Website, you can do more then the original has:
  - [X] Can change Note Speed
  - [X] Can change Master Volume
  - [X] Has Audio Limiter (NOT WORKING YET (or does it?))
+ - [X] MIDI Output
  - [ ] Performance Improvements (not quite)
 
 > [!WARNING]
